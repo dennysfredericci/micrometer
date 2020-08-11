@@ -174,4 +174,23 @@ class Log4j2MetricsTest {
         assertThat(registry.get("log4j2.events").tags("level", "info").counter().count()).isEqualTo(1);
     }
 
+    @Issue("#2176")
+    @Test
+    void asyncLogShouldNotBeDuplicatedMultipleLogInfoCalls() throws IOException {
+        ConfigurationSource source = new ConfigurationSource(getClass().getResourceAsStream("/binder/logging/log4j2-async-logger.xml"));
+        Configurator.initialize(null, source);
+
+        Logger logger = LogManager.getLogger(Log4j2MetricsTest.class);
+
+        new Log4j2Metrics().bindTo(registry);
+
+        assertThat(registry.get("log4j2.events").tags("level", "info").counter().count()).isEqualTo(0);
+
+        for (int i = 0; i < 10; i++) {
+            logger.info("Hello, world! "  + i);
+        }
+
+        assertThat(registry.get("log4j2.events").tags("level", "info").counter().count()).isEqualTo(10);
+    }
+
 }
